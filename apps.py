@@ -304,47 +304,67 @@ elif role == "faskes":
             st.session_state.riwayat_df = pd.concat([riwayat_df, pd.DataFrame([new_row])], ignore_index=True)
             st.success(f"✅ Tindakan berhasil disimpan untuk pasien di {selected_rs}!")
 
-    # ---------- FITUR TANGGAPI SANGGAHAN DENGAN HIGHLIGHT AI ----------
+       # ---------- FITUR TANGGAPI SANGGAHAN (FORM SELALU TAMPIL) ----------
     elif faskes_menu == "📬 Tanggapi Sanggahan":
         st.markdown("### 📬 Tanggapi Sanggahan dari Pasien")
+        
         sanggahan_menunggu = riwayat_df[riwayat_df["status_sanggahan"] == "menunggu"]
-        if sanggahan_menunggu.empty:
-            st.info("✅ Saat ini tidak ada sanggahan yang perlu ditanggapi.")
-        else:
-            for idx, row in sanggahan_menunggu.iterrows():
-                pasien_nama = pasien_df[pasien_df["user_id"] == row["user_id"]]["nama"].iloc[0]
-                with st.expander(f"📝 {pasien_nama} - {row['Layanan']} ({row['Tanggal'].strftime('%d %b %Y')})"):
-                    st.write(f"**Diagnosis**: {row['Diagnosis']}")
-                    st.write(f"**Sanggahan Pasien**: {row['sanggahan_pasien']}")
-                    # 🔥 HIGHLIGHT AI UNTUK FASKES 🔥
-                    if row.get("kategori_sanggahan") and row["kategori_sanggahan"] != "Lainnya":
-                        st.markdown(
-                            f'<span style="background:#E8F5E9; padding:2px 6px; border-radius:4px; font-size:0.9em; color:#2E7D32;">'
-                            f'🧠 Kategori AI: <b>{row["kategori_sanggahan"]}</b>'
-                            f'</span>',
-                            unsafe_allow_html=True
-                        )
-                    if row.get("bukti_pasien"):
-                        st.write(f"**Bukti dari Pasien**: {row['bukti_pasien']}")
-                    
-                    with st.form(f"respons_form_{idx}"):
-                        respons_text = st.text_area("Tanggapan Anda*", height=100)
-                        bukti_foto = st.file_uploader("Upload Bukti Foto* (wajib)", type=["jpg", "png"], key=f"bukti_{idx}")
-                        submit_respons = st.form_submit_button("Kirim Respons")
-                    
-                    if submit_respons:
-                        if not respons_text.strip():
-                            st.error("Tanggapan tidak boleh kosong.")
-                        elif not bukti_foto:
-                            st.error("Bukti foto wajib diupload.")
-                        else:
-                            riwayat_df.at[idx, "respons_faskes"] = respons_text
-                            riwayat_df.at[idx, "bukti_faskes"] = f"{bukti_foto.name} ({pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')})"
-                            riwayat_df.at[idx, "status_sanggahan"] = "direspons"
-                            st.session_state.riwayat_df = riwayat_df
-                            st.success("✅ Sanggahan telah dijawab!")
-                            st.rerun()
-
+        
+        with st.form("form_respons_faskes"):
+            if sanggahan_menunggu.empty:
+                st.info("ℹ️ Tidak ada sanggahan yang perlu ditanggapi saat ini.")
+                st.selectbox("Pilih Sanggahan", ["Tidak ada sanggahan"], disabled=True)
+                respons_text = st.text_area("Tanggapan Anda*", disabled=True, placeholder="Tidak ada sanggahan untuk direspons.")
+                bukti_foto = st.file_uploader("Upload Bukti Foto*", type=["jpg", "png"], disabled=True)
+            else:
+                # Pilih sanggahan
+                sanggahan_options = {}
+                for idx, row in sanggahan_menunggu.iterrows():
+                    pasien_nama = pasien_df[pasien_df["user_id"] == row["user_id"]]["nama"].iloc[0]
+                    label = f"{pasien_nama} - {row['Layanan']} ({row['Tanggal'].strftime('%d %b %Y')})"
+                    sanggahan_options[idx] = label
+                
+                selected_sanggahan = st.selectbox("Pilih Sanggahan untuk Direspons", list(sanggahan_options.keys()), 
+                                                format_func=lambda x: sanggahan_options[x])
+                
+                # Tampilkan detail
+                row = sanggahan_menunggu.loc[selected_sanggahan]
+                st.write(f"**Diagnosis**: {row['Diagnosis']}")
+                st.write(f"**Sanggahan Pasien**: {row['sanggahan_pasien']}")
+                if row.get("bukti_pasien"):
+                    st.write(f"**Bukti dari Pasien**: {row['bukti_pasien']}")
+                # Highlight AI
+                if row.get("kategori_sanggahan") and row["kategori_sanggahan"] != "Lainnya":
+                    st.markdown(
+                        f'<span style="background:#E8F5E9; padding:2px 6px; border-radius:4px; font-size:0.9em; color:#2E7D32;">'
+                        f'🧠 Kategori AI: <b>{row["kategori_sanggahan"]}</b>'
+                        f'</span>',
+                        unsafe_allow_html=True
+                    )
+                
+                # Input respons
+                respons_text = st.text_area("Tanggapan Anda*", height=100)
+                bukti_foto = st.file_uploader("Upload Bukti Foto* (wajib)", type=["jpg", "png"])
+            
+            submit = st.form_submit_button("Kirim Respons")
+        
+        # Proses pengiriman
+        if 'form_respons_faskes' in st.session_state or submit:
+            if sanggahan_menunggu.empty:
+                st.warning("Tidak ada sanggahan untuk direspons.")
+            else:
+                if not respons_text.strip():
+                    st.error("❌ Tanggapan tidak boleh kosong.")
+                elif not bukti_foto:
+                    st.error("❌ Bukti foto wajib diupload.")
+                else:
+                    # Simpan respons
+                    riwayat_df.at[selected_sanggahan, "respons_faskes"] = respons_text
+                    riwayat_df.at[selected_sanggahan, "bukti_faskes"] = f"{bukti_foto.name} ({pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')})"
+                    riwayat_df.at[selected_sanggahan, "status_sanggahan"] = "direspons"
+                    st.session_state.riwayat_df = riwayat_df
+                    st.success("✅ Sanggahan telah dijawab!")
+                    st.rerun()
 # ---------- LOGIKA PERAN: BPJS ----------
 elif role == "bpjs":
     st.markdown("<h2 style='text-align:center; color:#0A8F5B;'>JKNKLIN - BPJS</h2>", unsafe_allow_html=True)
