@@ -279,7 +279,7 @@ elif role == "faskes":
             st.session_state.riwayat_df = pd.concat([riwayat_df, pd.DataFrame([new_row])], ignore_index=True)
             st.success("✅ Detail tindakan berhasil disimpan!")
 
-           # ---------- FITUR RESPONS FASKES (FORM SELALU TAMPIL) ----------
+              # ---------- FITUR RESPONS FASKES (FORM SELALU TAMPIL) ----------
     elif faskes_menu == "📬 Tanggapi Sanggahan":
         st.markdown("### 📬 Tanggapi Sanggahan dari Pasien")
         
