@@ -20,6 +20,50 @@ def load_faq():
 
 KNOWLEDGE_SNIPPET = load_knowledge_base() + "\n" + load_faq()
 
+# ---------- FUNGSI BARU: ANALISIS NLP UNTUK SANGGAHAN ----------
+def analisis_sanggahan_nlp(sanggahan_text, model):
+    """
+    Analisis maksud sanggahan menggunakan Gemini (NLP).
+    Returns: {"kategori": str, "ringkasan": str}
+    """
+    prompt = f"""
+    Anda adalah analis klaim BPJS. Klasifikasikan sanggahan berikut ke dalam SATU kategori:
+    - Tindakan Tidak Dilakukan
+    - Biaya Tidak Wajar
+    - Diagnosis Salah
+    - Dokumen Tidak Sesuai
+    - Lainnya
+
+    Berikan juga ringkasan maksimal 8 kata.
+
+    Format respons: KATEGORI: [kategori] | RINGKASAN: [ringkasan]
+
+    Sanggahan: "{sanggahan_text}"
+    """
+    try:
+        response = model.generate_content(
+            prompt,
+            generation_config={"temperature": 0.1, "max_output_tokens": 64, "top_p": 0.9},
+            safety_settings={
+                "HARM_CATEGORY_HARASSMENT": "BLOCK_NONE",
+                "HARM_CATEGORY_HATE_SPEECH": "BLOCK_NONE",
+                "HARM_CATEGORY_SEXUALLY_EXPLICIT": "BLOCK_NONE",
+                "HARM_CATEGORY_DANGEROUS_CONTENT": "BLOCK_NONE"
+            }
+        )
+        output = response.text.strip()
+        
+        # Parse output
+        if "KATEGORI:" in output and "RINGKASAN:" in output:
+            kategori = output.split("KATEGORI:")[1].split("|")[0].strip()
+            ringkasan = output.split("RINGKASAN:")[1].strip()
+            return {"kategori": kategori, "ringkasan": ringkasan}
+        else:
+            return {"kategori": "Lainnya", "ringkasan": sanggahan_text[:30] + ("..." if len(sanggahan_text) > 30 else "")}
+    except Exception:
+        return {"kategori": "Lainnya", "ringkasan": "Analisis AI gagal"}
+
+# ---------- FUNGSI CHATBOT (TIDAK DIUBAH) ----------
 def get_response(user_input, model, user_context=""):
     if len(user_input) > 500:
         user_input = user_input[:500] + "..."
