@@ -1,11 +1,10 @@
 import pandas as pd
 import os
 
-# Load tarif data
 def load_tarif_data():
     path = os.path.join("data", "tarif_ina_cbgs.csv")
     if not os.path.exists(path):
-        raise FileNotFoundError(f"File tarif tidak ditemukan: {path}")
+        raise FileNotFoundError(f"File tidak ditemukan: {path}")
     df = pd.read_csv(path)
     INA_CBGs = dict(zip(df["Diagnosis"], df["Tarif_BPJS"]))
     REGIONAL_AVG = dict(zip(df["Diagnosis"], df["Regional_Avg"]))
@@ -17,7 +16,6 @@ def analyze_claim(diagnosis, claimed_amount, facility_type="Rumah Sakit", days=1
     diagnosis_key = diagnosis if diagnosis in INA_CBGs else "Rawat Jalan Umum"
     tarif_bpjs = INA_CBGs.get(diagnosis_key, 0)
     avg_claim = REGIONAL_AVG.get(diagnosis_key, tarif_bpjs)
-
     warning = []
     is_suspicious = False
 
@@ -33,7 +31,7 @@ def analyze_claim(diagnosis, claimed_amount, facility_type="Rumah Sakit", days=1
 
     if avg_claim > 0 and claimed_amount > avg_claim * 1.25:
         over_avg_pct = (claimed_amount - avg_claim) / avg_claim * 100
-        warning.append(f"Klaim {over_avg_pct:.1f}% di atas rata-rata regional untuk diagnosis ini.")
+        warning.append(f"Klaim {over_avg_pct:.1f}% di atas rata-rata regional.")
         is_suspicious = True
 
     if days > 3 and diagnosis in ["ISPA", "Diare"]:
@@ -58,7 +56,7 @@ def generate_appeal_suggestion(analysis_result):
             "Anda dapat mengajukan sanggahan dengan menyertakan:\n"
             "- Salinan rincian klaim dari rumah sakit\n"
             "- Bukti diagnosis (hasil lab/resep)\n"
-            "- Pertanyaan spesifik: mengapa biaya melebihi tarif BPJS?"
+            "- Pertanyaan: mengapa biaya melebihi tarif BPJS?"
         )
     else:
         return (
