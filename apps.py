@@ -57,7 +57,6 @@ def load_all_data():
     
     return pasien, riwayat
 
-# Muat data ke session
 if "riwayat_df" not in st.session_state:
     _, riwayat = load_all_data()
     st.session_state.riwayat_df = riwayat
@@ -68,10 +67,10 @@ if "pasien_df" not in st.session_state:
 pasien_df = st.session_state.pasien_df
 riwayat_df = st.session_state.riwayat_df
 
-# ---------- IMPORT MODUL PERAN ----------
-from pasien import tampilkan_pasien
-from faskes import tampilkan_faskes
-from bpjs import tampilkan_bpjs
+# ---------- IMPORT UTILS ----------
+from pasien_utils import tampilkan_pasien
+from faskes_utils import tampilkan_faskes
+from bpjs_utils import tampilkan_bpjs
 
 # ---------- SIDEBAR: PILIH PERAN ----------
 st.sidebar.title("🔐 Pilih Peran")
