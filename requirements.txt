@@ -1,1 +1,8 @@
-fgdfhgfdh
+transformers
+torch
+accelerate
+sentencepiece
+huggingface-hub
+streamlit
+pandas
+google-generativeai
