@@ -11,7 +11,7 @@ if "chat_messages" not in st.session_state:
 # ---------- PAGE CONFIG ----------
 st.set_page_config(page_title="JKNKLIN", layout="wide")
 
-# ---------- LOAD DATA ----------
+# ---------- LOAD DATA (DIPERBAIKI) ----------
 @st.cache_data
 def load_all_data():
     pasien_path = os.path.join("data", "pasien.csv")
@@ -21,16 +21,33 @@ def load_all_data():
         "user_id": [1], "nama": ["Budi Santoso"], "no_peserta": ["000123456789"], "indeks_keandalan": [89]
     })
     
-    riwayat = pd.read_csv(riwayat_path) if os.path.exists(riwayat_path) else pd.DataFrame({
-        "user_id": [1], "Fasilitas": ["RS Mitra Sehat"], "Tanggal": ["2023-05-15"],
-        "Layanan": ["Pemeriksaan Umum"], "Status": ["Terverifikasi"], "Diagnosis": ["ISPA"], "Klaim": [800000],
-        "tindakan_dilakukan": [True],
-        "verifikasi_bpjs": [True],
-        "detail_tindakan": ["Pemeriksaan dokter: Rp100.000"],
-        "sanggahan_pasien": [""],
-        "bukti_faskes": [""],
-        "status_sanggahan": [""]
-    })
+    # Load riwayat dasar
+    if os.path.exists(riwayat_path):
+        riwayat = pd.read_csv(riwayat_path)
+    else:
+        riwayat = pd.DataFrame({
+            "user_id": [1],
+            "Fasilitas": ["RS Mitra Sehat"],
+            "Tanggal": ["2023-05-15"],
+            "Layanan": ["Pemeriksaan Umum"],
+            "Status": ["Terverifikasi"],
+            "Diagnosis": ["ISPA"],
+            "Klaim": [800000]
+        })
+    
+    # ---------- TAMBAHKAN KOLOM WAJIB JIKA BELUM ADA ----------
+    required_columns = {
+        "tindakan_dilakukan": True,
+        "verifikasi_bpjs": True,
+        "detail_tindakan": "Pemeriksaan dokter: Rp100.000",
+        "sanggahan_pasien": "",
+        "bukti_faskes": "",
+        "status_sanggahan": ""
+    }
+    
+    for col, default_val in required_columns.items():
+        if col not in riwayat.columns:
+            riwayat[col] = default_val
     
     if "Tanggal" in riwayat.columns:
         riwayat["Tanggal"] = pd.to_datetime(riwayat["Tanggal"], errors="coerce")
@@ -133,16 +150,18 @@ if role == "pasien":
                     if not row.get("sanggahan_pasien"):
                         sanggahan = st.text_area("Jelaskan tindakan yang tidak dilakukan", key=f"sanggah_{idx}")
                         if st.button("Kirim Sanggahan", key=f"btn_sanggah_{idx}"):
-                            riwayat_df.at[riwayat_df.index[riwayat_df['user_id'] == selected_user_id].tolist()[0] + idx, "sanggahan_pasien"] = sanggahan
-                            riwayat_df.at[riwayat_df.index[riwayat_df['user_id'] == selected_user_id].tolist()[0] + idx, "status_sanggahan"] = "menunggu"
-                            st.session_state.riwayat_df = riwayat_df
-                            st.success("Sanggahan dikirim!")
+                            # Temukan index asli di riwayat_df
+                            full_idx = riwayat_df.index[riwayat_df.index == user_riwayat.index[idx]]
+                            if len(full_idx) > 0:
+                                riwayat_df.at[full_idx[0], "sanggahan_pasien"] = sanggahan
+                                riwayat_df.at[full_idx[0], "status_sanggahan"] = "menunggu"
+                                st.session_state.riwayat_df = riwayat_df
+                                st.success("Sanggahan dikirim!")
                     else:
                         st.warning(f"Sanggahan sudah dikirim: {row['sanggahan_pasien']}")
 
     # Fitur lainnya tetap sama (Bandingkan Tarif, Chatbot)
     elif menu == "📊 Bandingkan Tarif & Tindakan":
-        # ... (kode Anda tetap sama)
         with st.form("claim_form"):
             diagnosis = st.selectbox("Diagnosis Utama", ["ISPA", "Diare", "Hipertensi", "Diabetes", "Fraktur Tulang", "Lainnya"])
             if diagnosis == "Lainnya":
