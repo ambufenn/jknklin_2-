@@ -369,6 +369,7 @@ elif role == "faskes":
 elif role == "bpjs":
     st.markdown("<h2 style='text-align:center; color:#0A8F5B;'>JKNKLIN - BPJS</h2>", unsafe_allow_html=True)
     st.info("Fitur Verifikasi Klaim & Analisis Kecurangan")
+    
     klaim_belum = riwayat_df[riwayat_df["verifikasi_bpjs"] == False]
     if klaim_belum.empty:
         st.success("✅ Semua klaim sudah diverifikasi.")
@@ -381,20 +382,74 @@ elif role == "bpjs":
                 if "detail_tindakan" in row and pd.notna(row["detail_tindakan"]):
                     st.write("**Detail Tindakan:**")
                     st.text(row["detail_tindakan"])
+                
+                # 🔍 ANALISIS KEJanggalAN OTOMATIS (Rule-based AI)
+                warning_list = []
+                
+                # Cek overklaim vs tarif INA-CBGs
+                from fairness_engine import INA_CBGs
+                tarif_bpjs = INA_CBGs.get(row["Diagnosis"], 0)
+                klaim = row.get("Klaim", 0)
+                if tarif_bpjs > 0 and klaim > tarif_bpjs * 1.2:
+                    warning_list.append("⚠️ **Overklaim**: Klaim >20% di atas tarif BPJS")
+                
+                # Cek durasi rawat tidak wajar (contoh: ISPA rawat inap)
+                if row["Diagnosis"] in ["ISPA", "Diare"] and "Rawat Inap" in str(row["Layanan"]):
+                    warning_list.append("⚠️ **Pola Tidak Lazim**: Rawat inap untuk diagnosis ringan")
+                
+                # Cek sanggahan pasien
+                if row.get("sanggahan_pasien"):
+                    warning_list.append("⚠️ **Ada Sanggahan Pasien**: Perlu klarifikasi")
+                
+                # Tampilkan peringatan
+                if warning_list:
+                    st.warning("🚨 **Deteksi Potensi Masalah:**")
+                    for w in warning_list:
+                        st.write(w)
+                else:
+                    st.success("✅ Tidak ditemukan indikasi kejanggalan.")
+                
+                # 🔥 HIGHLIGHT AI: REKOMENDASI OTOMATIS 🔥
+                if warning_list:
+                    # Rekomendasi berdasarkan fasilitas
+                    faskes = row["Fasilitas"]
+                    if "RS" in faskes or "Rumah Sakit" in faskes:
+                        area_rekom = "unit rawat inap & farmasi"
+                    elif "Klinik" in faskes:
+                        area_rekom = "rekam medis & tindakan"
+                    else:
+                        area_rekom = "dokumentasi klaim"
+                    
+                    st.markdown(
+                        f'<div style="background:#E3F2FD; padding:10px; border-radius:6px; margin-top:10px;">'
+                        f'<b>🤖 Rekomendasi AI:</b> Prioritaskan verifikasi manual dan '
+                        f'periksa <b>{area_rekom}</b> di {faskes}.'
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
+                else:
+                    st.markdown(
+                        '<div style="background:#F1F8E9; padding:10px; border-radius:6px; margin-top:10px;">'
+                        '<b>🤖 Rekomendasi AI:</b> Klaim ini berisiko rendah. Verifikasi standar cukup.'
+                        '</div>',
+                        unsafe_allow_html=True
+                    )
+                
+                # Tampilkan status sanggahan & bukti
                 if row.get("sanggahan_pasien"):
                     st.warning(f"**Sanggahan Pasien**: {row['sanggahan_pasien']}")
                     st.write(f"**Bukti Pasien**: {row.get('bukti_pasien', 'Tidak ada')}")
-                    # Tampilkan kategori AI di BPJS juga
-                    if row.get("kategori_sanggahan") and row["kategori_sanggahan"] != "Lainnya":
-                        st.markdown(f"**Kategori AI**: `{row['kategori_sanggahan']}`", unsafe_allow_html=False)
                     if row.get("respons_faskes"):
                         st.success(f"**Respons Faskes**: {row['respons_faskes']}")
                         if row.get("bukti_faskes"):
                             st.write("**Bukti Faskes:**")
                             st.text(row["bukti_faskes"])
+                
                 st.write(f"**Dilakukan?**: {'✅ Ya' if row.get('tindakan_dilakukan', True) else '❌ Tidak'}")
+                
+                # Tombol verifikasi
                 verif = st.checkbox("Verifikasi Klaim", key=f"verif_{idx}")
                 if verif:
                     riwayat_df.at[idx, "verifikasi_bpjs"] = True
                     st.session_state.riwayat_df = riwayat_df
-                    st.success("Klaim diverifikasi!")
+                    st.success("✅ Klaim diverifikasi!")
