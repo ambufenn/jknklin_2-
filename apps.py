@@ -235,8 +235,26 @@ elif role == "faskes":
     
     if faskes_menu == "📥 Input Tindakan":
         st.info("📝 Input Detail Tindakan ke Pasien")
-        pasien_list = pasien_df
-        selected_pasien = st.selectbox("Pilih Pasien", pasien_list["user_id"], format_func=lambda x: pasien_list[pasien_list["user_id"]==x]["nama"].iloc[0])
+        
+        # Ambil daftar RS unik dari riwayat
+        if "Fasilitas" in riwayat_df.columns and not riwayat_df.empty:
+            daftar_rs = sorted(riwayat_df["Fasilitas"].dropna().unique())
+        else:
+            daftar_rs = ["RS Mitra Sehat", "Klinik Sejahtera", "RS Harapan Bunda", "Puskesmas Kota Baru", "RS Cinta Kasih"]
+        
+        selected_rs = st.selectbox("Pilih Rumah Sakit / Faskes", daftar_rs)
+        
+        # Filter pasien yang pernah ke RS ini
+        pasien_di_rs = riwayat_df[riwayat_df["Fasilitas"] == selected_rs]["user_id"].unique()
+        if len(pasien_di_rs) > 0:
+            pasien_rs_df = pasien_df[pasien_df["user_id"].isin(pasien_di_rs)]
+            pasien_options = {row["user_id"]: row["nama"] for _, row in pasien_rs_df.iterrows()}
+        else:
+            st.warning(f"Belum ada pasien terdaftar di {selected_rs}. Menampilkan semua pasien.")
+            pasien_options = {row["user_id"]: row["nama"] for _, row in pasien_df.iterrows()}
+        
+        selected_pasien_id = st.selectbox("Pilih Pasien", list(pasien_options.keys()), 
+                                        format_func=lambda x: pasien_options[x])
         
         with st.form("input_tindakan_detail"):
             diagnosis = st.selectbox("Diagnosis", ["ISPA", "Diare", "Hipertensi", "Diabetes", "Fraktur Tulang"])
@@ -260,8 +278,8 @@ elif role == "faskes":
         if submit:
             detail_str = "\n".join(tindakan_list) if tindakan_list else "Tidak ada detail"
             new_row = {
-                "user_id": selected_pasien,
-                "Fasilitas": "RS Anda",
+                "user_id": selected_pasien_id,
+                "Fasilitas": selected_rs,  # ← RS yang dipilih
                 "Tanggal": pd.Timestamp.now().date(),
                 "Layanan": layanan_utama,
                 "Status": "Dalam Review",
@@ -277,9 +295,9 @@ elif role == "faskes":
                 "status_sanggahan": ""
             }
             st.session_state.riwayat_df = pd.concat([riwayat_df, pd.DataFrame([new_row])], ignore_index=True)
-            st.success("✅ Detail tindakan berhasil disimpan!")
+            st.success(f"✅ Tindakan berhasil disimpan untuk pasien di {selected_rs}!")
 
-              # ---------- FITUR RESPONS FASKES (FORM SELALU TAMPIL) ----------
+    # ---------- FITUR RESPONS FASKES (FORM SELALU TAMPIL) ----------
     elif faskes_menu == "📬 Tanggapi Sanggahan":
         st.markdown("### 📬 Tanggapi Sanggahan dari Pasien")
         
@@ -330,6 +348,7 @@ elif role == "faskes":
                         st.session_state.riwayat_df = riwayat_df
                         st.success("✅ Respons berhasil dikirim!")
                         st.rerun()
+
 # ---------- LOGIKA PERAN: BPJS ----------
 elif role == "bpjs":
     st.markdown("<h2 style='text-align:center; color:#0A8F5B;'>JKNKLIN - BPJS</h2>", unsafe_allow_html=True)
