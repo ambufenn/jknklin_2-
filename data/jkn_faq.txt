@@ -1,0 +1,8 @@
+Q: Apa itu INA-CBGs?
+A: INA-CBGs (Indonesia Case Based Groups) adalah sistem pembayaran klaim BPJS berdasarkan diagnosis dan tindakan, bukan per item.
+
+Q: Berapa lama proses sanggahan klaim?
+A: Proses sanggahan memakan waktu 14 hari kerja sejak dokumen lengkap diterima.
+
+Q: Apakah rawat inap ISPA 5 hari wajar?
+A: Tidak. ISPA umumnya rawat jalan. Rawat inap >2 hari untuk ISPA dianggap tidak lazim dan berpotensi overclaim.
