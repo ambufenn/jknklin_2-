@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 from fairness_engine import INA_CBGs
 
-def tampilkan_dashboard_bpjs(riwayat_df, pasien_df):
+def tampilkan_bpjs(pasien_df, riwayat_df):
     st.markdown("<h2 style='text-align:center; color:#0A8F5B;'>JKNKLIN - BPJS</h2>", unsafe_allow_html=True)
     st.info("Fitur Verifikasi Klaim & Analisis Kecurangan")
     
