@@ -9,22 +9,45 @@ if "chat_messages" not in st.session_state:
     st.session_state.chat_messages = []
 
 # ---------- PAGE CONFIG ----------
-st.set_page_config(page_title="JKNKLIN", layout="centered")
+st.set_page_config(page_title="JKNKLIN", layout="wide")
 
-# ---------- HEADER ----------
-st.markdown("<h2 style='text-align:center; color:#0A8F5B;'>JKNKLIN</h2>", unsafe_allow_html=True)
-st.markdown("### Selamat Datang, **Budi Santoso**")
-st.caption("No. Peserta: 000123456789")
+# ---------- LOAD DATA ----------
+@st.cache_data
+def load_all_data():
+    pasien_path = os.path.join("data", "pasien.csv")
+    riwayat_path = os.path.join("data", "riwayat_kunjungan.csv")
+    
+    pasien = pd.read_csv(pasien_path) if os.path.exists(pasien_path) else pd.DataFrame({
+        "user_id": [1], "nama": ["Budi Santoso"], "no_peserta": ["000123456789"], "indeks_keandalan": [89]
+    })
+    
+    riwayat = pd.read_csv(riwayat_path) if os.path.exists(riwayat_path) else pd.DataFrame({
+        "user_id": [1], "Fasilitas": ["RS Mitra Sehat"], "Tanggal": ["2023-05-15"],
+        "Layanan": ["Pemeriksaan Umum"], "Status": ["Terverifikasi"], "Diagnosis": ["ISPA"], "Klaim": [800000]
+    })
+    
+    if "Tanggal" in riwayat.columns:
+        riwayat["Tanggal"] = pd.to_datetime(riwayat["Tanggal"], errors="coerce")
+    
+    return pasien, riwayat
 
-# ---------- INDEKS KEANDALAN ----------
-st.markdown("""
-<div style="background:#F2FBF7; border:1px solid #D9F0E4; padding:10px; border-radius:8px; margin:1rem 0;">
-<b>Indeks Keandalan:</b> <span style="color:#007F3D;">89/100</span><br>
-<i>Akses Anda: Sehat & Transparan</i>
-</div>
-""", unsafe_allow_html=True)
+pasien_df, riwayat_df = load_all_data()
 
-# ---------- MENU DROPDOWN DI SIDEBAR (SATU-SATUNYA PERUBAHAN) ----------
+# ---------- SIDEBAR: PILIH PASIEN ----------
+st.sidebar.title("👤 Pilih Peserta")
+user_options = {row["user_id"]: f"{row['nama']} (ID: {row['user_id']})" for _, row in pasien_df.iterrows()}
+selected_user_id = st.sidebar.selectbox(
+    "Peserta JKN",
+    options=list(user_options.keys()),
+    format_func=lambda x: user_options[x]
+)
+
+# Dapatkan data pasien aktif
+user_data = pasien_df[pasien_df["user_id"] == selected_user_id].iloc[0]
+user_riwayat = riwayat_df[riwayat_df["user_id"] == selected_user_id]
+
+# ---------- SIDEBAR: MENU FITUR ----------
+st.sidebar.title("🧭 Navigasi")
 menu = st.sidebar.selectbox("Pilih Fitur", [
     "🗂️ Lihat Riwayat Layanan",
     "📊 Bandingkan Tarif & Tindakan",
@@ -32,23 +55,34 @@ menu = st.sidebar.selectbox("Pilih Fitur", [
     "🤖 Chatbot Bantuan"
 ])
 
+# ---------- HEADER (DINAMIS PER PASIEN) ----------
+st.markdown("<h2 style='text-align:center; color:#0A8F5B;'>JKNKLIN</h2>", unsafe_allow_html=True)
+st.markdown(f"### Selamat Datang, **{user_data['nama']}**")
+st.caption(f"No. Peserta: **{user_data['no_peserta']}**")
+
+# ---------- INDEKS KEANDALAN DINAMIS ----------
+indeks = int(user_data["indeks_keandalan"])
+warna = "#007F3D" if indeks >= 85 else "#FFA500" if indeks >= 70 else "#D32F2F"
+status = "Sehat & Transparan" if indeks >= 85 else "Perlu Pemantauan" if indeks >= 70 else "Berisiko"
+
+st.markdown(f"""
+<div style="background:#F2FBF7; border:1px solid #D9F0E4; padding:10px; border-radius:8px; margin:1rem 0;">
+<b>Indeks Keandalan:</b> <span style="color:{warna};">{indeks}/100</span><br>
+<i>Akses Anda: {status}</i>
+</div>
+""", unsafe_allow_html=True)
+
 # ---------- FITUR: RIWAYAT ----------
 if menu == "🗂️ Lihat Riwayat Layanan":
-    path = os.path.join("data", "riwayat_budi.csv")
-    if os.path.exists(path):
-        try:
-            df = pd.read_csv(path)
-            if "Status" in df.columns:
-                def color_status(val):
-                    colors = {"Terverifikasi": "#D4EDDA", "Dalam Review": "#D1ECF1", "Catatan Ditambahkan": "#FFF3CD"}
-                    return f"background-color: {colors.get(val, 'white')}"
-                st.dataframe(df.style.applymap(color_status, subset=["Status"]))
-            else:
-                st.dataframe(df)
-        except Exception as e:
-            st.error("Gagal membaca file riwayat.")
+    if user_riwayat.empty:
+        st.info("Belum ada riwayat kunjungan.")
     else:
-        st.warning("File `data/riwayat_budi.csv` tidak ditemukan.")
+        df_show = user_riwayat[["Fasilitas", "Tanggal", "Layanan", "Status"]].copy()
+        def color_status(val):
+            colors = {"Terverifikasi": "#D4EDDA", "Dalam Review": "#D1ECF1", "Catatan Ditambahkan": "#FFF3CD"}
+            return f"background-color: {colors.get(val, 'white')}"
+        st.dataframe(df_show.style.applymap(color_status, subset=["Status"]))
+    st.markdown("<center><a href='#' style='color:#0A8F5B;'>Lihat Semua Riwayat</a></center>", unsafe_allow_html=True)
 
 # ---------- FITUR: BANDINGKAN TARIF ----------
 elif menu == "📊 Bandingkan Tarif & Tindakan":
@@ -87,7 +121,7 @@ elif menu == "💬 Kirim Masukan / Sanggahan":
         st.file_uploader("Dokumen Pendukung (opsional)", type=["pdf", "jpg", "png"])
         submit = st.form_submit_button("Kirim Sanggahan")
     if submit:
-        st.success("✅ Sanggahan Anda telah dikirim! Nomor tiket: FC-2025-11451")
+        st.success(f"✅ Sanggahan Anda telah dikirim! Nomor tiket: FC-2025-{selected_user_id}451")
 
 # ---------- FITUR: CHATBOT ----------
 elif menu == "🤖 Chatbot Bantuan":
@@ -113,5 +147,5 @@ elif menu == "🤖 Chatbot Bantuan":
             st.session_state.chat_messages.append({"role": "assistant", "content": response})
             with st.chat_message("assistant"):
                 st.markdown(response)
-        except Exception as e:
+        except Exception:
             st.error("Maaf, sedang ada gangguan teknis.")
