@@ -279,64 +279,57 @@ elif role == "faskes":
             st.session_state.riwayat_df = pd.concat([riwayat_df, pd.DataFrame([new_row])], ignore_index=True)
             st.success("✅ Detail tindakan berhasil disimpan!")
 
-          # ---------- FITUR: TANGGAPI SANGGAHAN (FASKES) ----------
+           # ---------- FITUR RESPONS FASKES (FORM SELALU TAMPIL) ----------
     elif faskes_menu == "📬 Tanggapi Sanggahan":
         st.markdown("### 📬 Tanggapi Sanggahan dari Pasien")
         
-        # Ambil sanggahan yang belum direspons
+        # Ambil semua sanggahan yang belum direspons
         sanggahan_menunggu = riwayat_df[riwayat_df["status_sanggahan"] == "menunggu"]
         
-        if sanggahan_menunggu.empty:
-            st.success("✅ Tidak ada sanggahan yang perlu ditanggapi saat ini.")
-        else:
-            with st.form("form_respons_faskes"):
-                # Dropdown pilih sanggahan
-                options = {}
+        with st.form("form_respons_global"):
+            if sanggahan_menunggu.empty:
+                st.info("✅ Saat ini tidak ada sanggahan yang perlu ditanggapi.")
+                st.warning("Form respons akan aktif saat ada sanggahan baru.")
+                # Tetap tampilkan form tapi nonaktif
+                st.text_area("Tanggapan Anda", disabled=True, placeholder="Belum ada sanggahan untuk direspons.")
+                st.file_uploader("Upload Bukti Foto", type=["jpg", "png"], disabled=True)
+                st.form_submit_button("Kirim Respons", disabled=True)
+            else:
+                # Pilih sanggahan
+                sanggahan_options = {}
                 for idx, row in sanggahan_menunggu.iterrows():
                     pasien_nama = pasien_df[pasien_df["user_id"] == row["user_id"]]["nama"].iloc[0]
                     label = f"{pasien_nama} - {row['Layanan']} ({row['Tanggal'].strftime('%d %b %Y')})"
-                    options[idx] = label
+                    sanggahan_options[idx] = label
                 
-                selected_idx = st.selectbox("Pilih Sanggahan untuk Direspons", list(options.keys()), 
-                                          format_func=lambda x: options[x])
+                selected_sanggahan = st.selectbox("Pilih Sanggahan", list(sanggahan_options.keys()), 
+                                                format_func=lambda x: sanggahan_options[x])
                 
                 # Tampilkan detail sanggahan
-                row = sanggahan_menunggu.loc[selected_idx]
+                row = sanggahan_menunggu.loc[selected_sanggahan]
                 st.write(f"**Diagnosis**: {row['Diagnosis']}")
                 st.write(f"**Sanggahan Pasien**: {row['sanggahan_pasien']}")
                 if row.get("bukti_pasien"):
                     st.write(f"**Bukti dari Pasien**: {row['bukti_pasien']}")
                 
-                st.markdown("---")
-                st.markdown("### 📝 Tanggapan Anda")
-                respons_text = st.text_area(
-                    "Jelaskan klarifikasi dan tindakan yang sebenarnya dilakukan*",
-                    height=120,
-                    placeholder="Contoh: Tindakan 'Suntik Omeprazole' telah dilakukan sesuai SOP. Berikut bukti..."
-                )
-                bukti_foto = st.file_uploader(
-                    "Upload Bukti Foto* (wajib, pastikan ada jam & tanggal)",
-                    type=["jpg", "jpeg", "png"]
-                )
+                # Form input
+                respons_text = st.text_area("Tanggapan Anda*", height=100,
+                                          placeholder="Jelaskan klarifikasi dan tindakan yang sebenarnya dilakukan.")
+                bukti_foto = st.file_uploader("Upload Bukti Foto* (wajib)", type=["jpg", "png"])
                 
-                submit = st.form_submit_button("Kirim Respons")
-            
-            # Proses pengiriman
-            if submit:
-                if not respons_text.strip():
-                    st.error("❌ Tanggapan tidak boleh kosong.")
-                elif not bukti_foto:
-                    st.error("❌ Bukti foto wajib diupload.")
-                else:
-                    # Simpan ke session state
-                    riwayat_df.at[selected_idx, "respons_faskes"] = respons_text
-                    riwayat_df.at[selected_idx, "bukti_faskes"] = f"{bukti_foto.name} ({pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')})"
-                    riwayat_df.at[selected_idx, "status_sanggahan"] = "direspons"
-                    st.session_state.riwayat_df = riwayat_df
-                    
-                    # Tampilkan pesan sukses & refresh
-                    st.success("✅ Sanggahan telah dijawab!")
-                    st.rerun()
+                submit_respons = st.form_submit_button("Kirim Respons")
+                
+                if submit_respons:
+                    if not respons_text.strip() or not bukti_foto:
+                        st.error("⚠️ Tanggapan dan bukti foto wajib diisi.")
+                    else:
+                        # Simpan respons
+                        riwayat_df.at[selected_sanggahan, "respons_faskes"] = respons_text
+                        riwayat_df.at[selected_sanggahan, "bukti_faskes"] = f"{bukti_foto.name} ({pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')})"
+                        riwayat_df.at[selected_sanggahan, "status_sanggahan"] = "direspons"
+                        st.session_state.riwayat_df = riwayat_df
+                        st.success("✅ Respons berhasil dikirim!")
+                        st.rerun()
 # ---------- LOGIKA PERAN: BPJS ----------
 elif role == "bpjs":
     st.markdown("<h2 style='text-align:center; color:#0A8F5B;'>JKNKLIN - BPJS</h2>", unsafe_allow_html=True)
