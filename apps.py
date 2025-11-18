@@ -75,14 +75,13 @@ st.markdown(f"""
 # ---------- FITUR: RIWAYAT ----------
 if menu == "🗂️ Lihat Riwayat Layanan":
     if user_riwayat.empty:
-        st.info("Belum ada riwayat kunjungan.")
+        st.info("ℹ️ Belum ada riwayat kunjungan. Silakan lengkapi catatan rawat Anda melalui fasilitas kesehatan terdekat.")
     else:
         df_show = user_riwayat[["Fasilitas", "Tanggal", "Layanan", "Status"]].copy()
         def color_status(val):
             colors = {"Terverifikasi": "#D4EDDA", "Dalam Review": "#D1ECF1", "Catatan Ditambahkan": "#FFF3CD"}
             return f"background-color: {colors.get(val, 'white')}"
         st.dataframe(df_show.style.applymap(color_status, subset=["Status"]))
-    st.markdown("<center><a href='#' style='color:#0A8F5B;'>Lihat Semua Riwayat</a></center>", unsafe_allow_html=True)
 
 # ---------- FITUR: BANDINGKAN TARIF ----------
 elif menu == "📊 Bandingkan Tarif & Tindakan":
