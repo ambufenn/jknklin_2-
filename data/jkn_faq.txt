@@ -1,8 +1,19 @@
+PERTANYAAN UMUM PESERTA JKN:
+
 Q: Apa itu INA-CBGs?
-A: INA-CBGs (Indonesia Case Based Groups) adalah sistem pembayaran klaim BPJS berdasarkan diagnosis dan tindakan, bukan per item.
+A: INA-CBGs (Indonesia Case Based Groups) adalah sistem klaim BPJS berbasis paket diagnosis dan tindakan, bukan per item layanan.
 
 Q: Berapa lama proses sanggahan klaim?
-A: Proses sanggahan memakan waktu 14 hari kerja sejak dokumen lengkap diterima.
+A: Maksimal 14 hari kerja setelah dokumen lengkap diterima oleh BPJS Kesehatan.
 
-Q: Apakah rawat inap ISPA 5 hari wajar?
-A: Tidak. ISPA umumnya rawat jalan. Rawat inap >2 hari untuk ISPA dianggap tidak lazim dan berpotensi overclaim.
+Q: Apakah rawat inap ISPA selama 5 hari wajar?
+A: Tidak wajar. ISPA (Infeksi Saluran Pernapasan Akut) umumnya ditangani rawat jalan. Rawat inap >2 hari untuk ISPA berpotensi overclaim.
+
+Q: Bagaimana cara mengetahui klaim rumah sakit saya sesuai tarif?
+A: Gunakan fitur "Bandingkan Tarif & Tindakan" di JKNKLIN untuk analisis otomatis berdasarkan diagnosis dan lama rawat.
+
+Q: Apakah semua diagnosis ada di INA-CBGs?
+A: Tidak. Beberapa kasus langka atau kompleks menggunakan tarif negosiasi. Namun 95% kasus umum sudah tercakup.
+
+Q: Apa yang dimaksud "Indeks Keandalan"?
+A: Skor 0–100 yang menunjukkan konsistensi riwayat layanan Anda dengan pola peserta sehat. Skor ≥85 berarti transparan dan wajar.
