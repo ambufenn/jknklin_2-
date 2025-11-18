@@ -1,7 +1,6 @@
 import os
 import pandas as pd
 
-# ---------- LOAD KNOWLEDGE BASE ----------
 def load_knowledge_base():
     tarif_path = os.path.join("data", "tarif_ina_cbgs.csv")
     if os.path.exists(tarif_path):
@@ -19,42 +18,30 @@ def load_faq():
             return f.read().strip()
     return ""
 
-# Gabungkan semua pengetahuan
 KNOWLEDGE_SNIPPET = load_knowledge_base() + "\n" + load_faq()
 
-# ---------- GENERATE RESPONSE ----------
 def get_response(user_input, model, user_context=""):
-    """
-    user_context (opsional): riwayat pengguna, misal: "Riwayat terbaru: ISPA, klaim Rp800.000"
-    """
     if len(user_input) > 500:
         user_input = user_input[:500] + "..."
-
+    
     full_prompt = f"""Kamu adalah FairCare Assistant, chatbot resmi sistem JKNKLIN yang membantu peserta JKN memahami transparansi layanan kesehatan, klaim BPJS, dan hak mereka.
 
 {KNOWLEDGE_SNIPPET}
 
-{user_context}
-
-Aturan respons:
-1. Jawab hanya dalam konteks JKN/BPJS Kesehatan Indonesia.
-2. Gunakan bahasa Indonesia yang jelas, sopan, dan empatik.
-3. Jangan mengarang data, kebijakan, atau angka di luar pengetahuan yang diberikan.
-4. Jika pertanyaan di luar topik, arahkan ke topik JKN atau sarankan hubungi BPJS langsung.
-5. Jika pengguna tanya tentang klaim atau tarif, tawarkan bantuan lewat fitur "Bandingkan Tarif & Tindakan".
-6. Jawaban maksimal 3 kalimat kecuali penjelasan teknis diperlukan.
+Aturan:
+1. Jawab hanya seputar JKN/BPJS Kesehatan Indonesia.
+2. Gunakan bahasa Indonesia yang jelas dan empatik.
+3. Jangan mengarang data.
+4. Jika tidak tahu, arahkan ke fitur 'Bandingkan Tarif' atau sarankan hubungi BPJS.
+5. Jawaban maksimal 3 kalimat.
 
 Pertanyaan pengguna: {user_input}
 """
-
+    
     try:
         response = model.generate_content(
             full_prompt,
-            generation_config={
-                "temperature": 0.3,
-                "max_output_tokens": 350,
-                "top_p": 0.9
-            },
+            generation_config={"temperature": 0.3, "max_output_tokens": 350, "top_p": 0.9},
             safety_settings={
                 "HARM_CATEGORY_HARASSMENT": "BLOCK_NONE",
                 "HARM_CATEGORY_HATE_SPEECH": "BLOCK_NONE",
@@ -63,8 +50,6 @@ Pertanyaan pengguna: {user_input}
             }
         )
         output = response.text.strip()
-        if not output:
-            raise ValueError("Respons kosong")
-        return output
+        return output if output else "Maaf, saya tidak dapat menjawab saat ini."
     except Exception:
-        return "Maaf, saya sedang tidak dapat menjawab. Silakan coba tanya hal lain seputar JKN atau gunakan fitur 'Bandingkan Tarif' untuk analisis klaim."
+        return "Maaf, sedang ada gangguan teknis. Silakan coba fitur 'Bandingkan Tarif' untuk analisis klaim."
