@@ -1,0 +1,9 @@
+user_id,Fasilitas,Tanggal,Layanan,Status,Diagnosis,Klaim
+1,RS Mitra Sehat,2023-05-15,Pemeriksaan Umum,Terverifikasi,ISPA,800000
+1,Klinik Sejahtera,2023-04-02,Konsultasi Spesialis,Dalam Review,Hipertensi,1100000
+2,RS Harapan Bunda,2023-06-21,Pemeriksaan Gigi,Terverifikasi,Infeksi Gusi,200000
+2,Puskesmas Kota Baru,2023-07-05,Imunisasi Anak,Terverifikasi,Imunisasi,0
+3,RS Cinta Kasih,2023-02-18,Konsultasi Jantung,Dalam Review,Diabetes,1600000
+4,RS Harapan Bunda,2023-09-01,Persalinan,Catatan Ditambahkan,Persalinan Normal,2500000
+5,RS Mitra Sehat,2023-10-10,Fisioterapi,Terverifikasi,Nyeri Punggung,300000
+5,RS Cinta Kasih,2023-11-05,Pemeriksaan Mata,Terverifikasi,Katarak,4000000
