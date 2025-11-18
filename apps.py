@@ -24,8 +24,8 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ---------- MENU DROPDOWN ----------
-menu = st.selectbox("Pilih Fitur", [
+# ---------- MENU DROPDOWN DI SIDEBAR (SATU-SATUNYA PERUBAHAN) ----------
+menu = st.sidebar.selectbox("Pilih Fitur", [
     "🗂️ Lihat Riwayat Layanan",
     "📊 Bandingkan Tarif & Tindakan",
     "💬 Kirim Masukan / Sanggahan",
