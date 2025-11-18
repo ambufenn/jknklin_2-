@@ -34,11 +34,14 @@ def load_all_data():
             "Klaim": [800000]
         })
     
+    # ---------- TAMBAHKAN SEMUA KOLOM WAJIB ----------
     required_columns = {
         "tindakan_dilakukan": True,
         "verifikasi_bpjs": True,
         "detail_tindakan": "Pemeriksaan dokter: Rp100.000",
         "sanggahan_pasien": "",
+        "bukti_pasien": "",        # << BARU
+        "respons_faskes": "",      # << BARU
         "bukti_faskes": "",
         "status_sanggahan": ""
     }
@@ -121,56 +124,56 @@ if role == "pasien":
                         st.write("**Tindakan yang Diberikan:**")
                         st.text(row["detail_tindakan"])
                     
-                    # --- PERBAIKAN DI SINI: TAMPILKAN OPSI SANGGAHAN UNTUK SEMUA KLAIM ---
                     if row.get("sanggahan_pasien"):
                         st.warning(f"**Sanggahan Anda:** {row['sanggahan_pasien']}")
+                        if row.get("bukti_pasien"):
+                            st.write(f"**Bukti Anda:** {row['bukti_pasien']}")
                         if row.get("status_sanggahan") == "direspons":
                             st.success("✅ Faskes telah merespons sanggahan Anda.")
+                            st.write(f"**Respons Faskes:** {row.get('respons_faskes', 'Tidak ada keterangan')}")
                             if row.get("bukti_faskes"):
                                 st.write("**Bukti dari Faskes:**")
                                 st.text(row["bukti_faskes"])
                     else:
                         st.info("Belum ada sanggahan untuk kunjungan ini.")
-                        if st.button("➕ Ajukan Sanggahan", key=f"sanggah_btn_{idx}"):
-                            st.session_state.selected_klaim_idx = user_riwayat.index[idx]
-                            st.session_state.show_sanggahan_form = True
-                    
-                    st.markdown("---")
         st.markdown("<center><a href='#' style='color:#0A8F5B;'>Lihat Semua Riwayat</a></center>", unsafe_allow_html=True)
 
-        # --- TAMPILKAN FORM SANGGAHAN JIKA DIPICU DARI RIWAYAT ---
-        if st.session_state.get("show_sanggahan_form"):
-            klaim_idx = st.session_state.selected_klaim_idx
-            klaim_row = riwayat_df.loc[klaim_idx]
-            st.markdown(f"### 📝 Sanggah Kunjungan: {klaim_row['Layanan']} ({klaim_row['Tanggal'].strftime('%d %b %Y')})")
-            sanggahan = st.text_area("Jelaskan tindakan yang tidak dilakukan atau tidak sesuai", height=150)
-            if st.button("Kirim Sanggahan"):
-                riwayat_df.at[klaim_idx, "sanggahan_pasien"] = sanggahan
-                riwayat_df.at[klaim_idx, "status_sanggahan"] = "menunggu"
-                st.session_state.riwayat_df = riwayat_df
-                st.session_state.show_sanggahan_form = False
-                st.success("Sanggahan berhasil dikirim! Faskes akan segera menanggapi.")
-                st.rerun()
-
+    # ---------- FITUR SANGGAHAN BARU (FORM LENGKAP) ----------
     elif menu == "💬 Kirim Masukan / Sanggahan":
         st.markdown("### 📝 Ajukan Sanggahan untuk Kunjungan Tertentu")
         if user_riwayat.empty:
             st.info("Tidak ada riwayat kunjungan.")
         else:
-            for idx, row in user_riwayat.iterrows():
-                with st.expander(f"{row['Tanggal'].strftime('%d %b %Y')} - {row['Layanan']}"):
-                    if row.get("sanggahan_pasien"):
-                        st.warning(f"Sudah disanggah: {row['sanggahan_pasien']}")
-                    else:
-                        sanggahan = st.text_area("Jelaskan sanggahan Anda", key=f"sanggah_area_{idx}")
-                        if st.button("Kirim Sanggahan", key=f"sanggah_btn_{idx}"):
-                            full_idx = riwayat_df.index[riwayat_df.index == user_riwayat.index[idx]]
-                            if len(full_idx) > 0:
-                                riwayat_df.at[full_idx[0], "sanggahan_pasien"] = sanggahan
-                                riwayat_df.at[full_idx[0], "status_sanggahan"] = "menunggu"
-                                st.session_state.riwayat_df = riwayat_df
-                                st.success("Sanggahan dikirim!")
-                                st.rerun()
+            with st.form("form_sanggahan"):
+                # Pilih kunjungan
+                kunjungan_options = {}
+                for idx, row in user_riwayat.iterrows():
+                    label = f"{row['Tanggal'].strftime('%d %b %Y')} - {row['Layanan']} ({row['Diagnosis']})"
+                    kunjungan_options[idx] = label
+                selected_kunjungan = st.selectbox("Pilih Kunjungan", list(kunjungan_options.keys()), format_func=lambda x: kunjungan_options[x])
+                
+                # Input sanggahan
+                sanggahan_text = st.text_area("Jelaskan sanggahan Anda secara detail", height=150, 
+                                            placeholder="Contoh: Tindakan 'Suntik Omeprazole' tidak dilakukan, hanya diberi obat oral.")
+                
+                # Upload bukti
+                bukti_file = st.file_uploader("Upload Dokumen Pendukung (opsional)", type=["pdf", "jpg", "png"])
+                
+                submit = st.form_submit_button("Kirim Sanggahan")
+            
+            if submit:
+                if not sanggahan_text.strip():
+                    st.error("Silakan isi sanggahan terlebih dahulu.")
+                else:
+                    # Dapatkan index asli di riwayat_df
+                    actual_idx = user_riwayat.loc[selected_kunjungan].name
+                    riwayat_df.at[actual_idx, "sanggahan_pasien"] = sanggahan_text
+                    riwayat_df.at[actual_idx, "status_sanggahan"] = "menunggu"
+                    if bukti_file:
+                        riwayat_df.at[actual_idx, "bukti_pasien"] = f"{bukti_file.name} ({pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')})"
+                    st.session_state.riwayat_df = riwayat_df
+                    st.success("✅ Sanggahan Anda telah dikirim! Faskes akan segera menanggapi.")
+                    st.rerun()
 
     elif menu == "📊 Bandingkan Tarif & Tindakan":
         with st.form("claim_form"):
@@ -268,35 +271,46 @@ elif role == "faskes":
                 "verifikasi_bpjs": False,
                 "detail_tindakan": detail_str,
                 "sanggahan_pasien": "",
+                "bukti_pasien": "",
+                "respons_faskes": "",
                 "bukti_faskes": "",
                 "status_sanggahan": ""
             }
             st.session_state.riwayat_df = pd.concat([riwayat_df, pd.DataFrame([new_row])], ignore_index=True)
             st.success("✅ Detail tindakan berhasil disimpan!")
 
+    # ---------- FITUR RESPONS FASKES (FORM WAJIB) ----------
     elif faskes_menu == "📬 Tanggapi Sanggahan":
         st.markdown("### 📬 Daftar Sanggahan dari Pasien")
         sanggahan_menunggu = riwayat_df[riwayat_df["status_sanggahan"] == "menunggu"]
         if sanggahan_menunggu.empty:
-            st.info("✅ Tidak ada sanggahan baru. Semua sanggahan telah ditanggapi.")
+            st.info("✅ Tidak ada sanggahan baru.")
         else:
             for idx, row in sanggahan_menunggu.iterrows():
                 pasien_nama = pasien_df[pasien_df["user_id"] == row["user_id"]]["nama"].iloc[0]
                 with st.expander(f"📝 {pasien_nama} - {row['Layanan']} ({row['Tanggal'].strftime('%d %b %Y')})"):
                     st.write(f"**Diagnosis**: {row['Diagnosis']}")
                     st.write(f"**Sanggahan Pasien**: {row['sanggahan_pasien']}")
-                    st.write("**Respons Anda**")
-                    st.caption("📸 Foto harus menunjukkan jam & tanggal (misal: hasil TTV di layar monitor)")
-                    bukti_file = st.file_uploader("Upload Bukti Foto", type=["jpg", "png"], key=f"bukti_{idx}")
-                    keterangan = st.text_area("Keterangan Tambahan", key=f"ket_{idx}")
-                    if st.button("Kirim Respons", key=f"res_{idx}"):
-                        if bukti_file:
-                            bukti_nama = f"{bukti_file.name} ({pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')})"
-                            riwayat_df.at[idx, "bukti_faskes"] = bukti_nama
-                        riwayat_df.at[idx, "status_sanggahan"] = "direspons"
-                        st.session_state.riwayat_df = riwayat_df
-                        st.success("Respons berhasil dikirim!")
-                        st.rerun()
+                    if row.get("bukti_pasien"):
+                        st.write(f"**Bukti dari Pasien**: {row['bukti_pasien']}")
+                    
+                    # Form respons (wajib lengkap)
+                    with st.form(f"form_respons_{idx}"):
+                        respons_text = st.text_area("Tanggapan Anda", height=100,
+                                                  placeholder="Jelaskan klarifikasi dan tindakan yang sebenarnya dilakukan.")
+                        bukti_foto = st.file_uploader("Upload Bukti Foto (wajib)", type=["jpg", "png"], key=f"bukti_{idx}")
+                        submit_respons = st.form_submit_button("Kirim Respons")
+                    
+                    if submit_respons:
+                        if not respons_text.strip() or not bukti_foto:
+                            st.error("⚠️ Tanggapan dan bukti foto wajib diisi.")
+                        else:
+                            riwayat_df.at[idx, "respons_faskes"] = respons_text
+                            riwayat_df.at[idx, "bukti_faskes"] = f"{bukti_foto.name} ({pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')})"
+                            riwayat_df.at[idx, "status_sanggahan"] = "direspons"
+                            st.session_state.riwayat_df = riwayat_df
+                            st.success("✅ Respons berhasil dikirim!")
+                            st.rerun()
 
 # ---------- LOGIKA PERAN: BPJS ----------
 elif role == "bpjs":
@@ -317,8 +331,12 @@ elif role == "bpjs":
                     st.text(row["detail_tindakan"])
                 if row.get("sanggahan_pasien"):
                     st.warning(f"**Sanggahan Pasien**: {row['sanggahan_pasien']}")
-                    if row.get("bukti_faskes"):
-                        st.success(f"**Bukti Faskes**: {row['bukti_faskes']}")
+                    st.write(f"**Bukti Pasien**: {row.get('bukti_pasien', 'Tidak ada')}")
+                    if row.get("respons_faskes"):
+                        st.success(f"**Respons Faskes**: {row['respons_faskes']}")
+                        if row.get("bukti_faskes"):
+                            st.write("**Bukti Faskes:**")
+                            st.text(row["bukti_faskes"])
                 st.write(f"**Dilakukan?**: {'✅ Ya' if row.get('tindakan_dilakukan', True) else '❌ Tidak'}")
                 verif = st.checkbox("Verifikasi Klaim", key=f"verif_{idx}")
                 if verif:
