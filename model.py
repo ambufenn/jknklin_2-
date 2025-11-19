@@ -1,4 +1,4 @@
-import os
+import os 
 import google.generativeai as genai
 
 def load_model():
