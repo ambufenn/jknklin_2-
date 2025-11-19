@@ -1,4 +1,4 @@
-# faskes_utils.py
+# faskes_utils.py 
 import streamlit as st
 import pandas as pd
 from model import load_model
